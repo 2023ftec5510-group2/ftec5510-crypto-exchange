@@ -1,7 +1,27 @@
-import {Box, Card, CardContent, CardHeader, CardMedia, Container, Stack, Typography} from "@mui/material";
-import React from "react";
+import {
+    Box,
+    Card,
+    CardContent,
+    CardHeader,
+    CardMedia,
+    Container,
+    Grid, Icon, Skeleton,
+    Stack,
+    Typography,
+    useTheme
+} from "@mui/material";
+import React, {useState} from "react";
 import Order from "../../domain/entities/order/order";
 import LogoImage from '../../logo.svg';
+import ExchangeIcon from '@mui/icons-material/CurrencyExchange'
+import {makeStyles} from "tss-react/mui";
+
+const useStyles = makeStyles()((theme) => ({
+    cardStyle: {
+        border: '2px dotted lightgray',
+        borderRadius: '8px',
+    }
+}))
 
 
 export interface PaymentCardProps {
@@ -11,10 +31,35 @@ export interface PaymentCardProps {
     productName?: string,
     order: Order | null,
     isExpired: boolean,
-    seconds: number
+    seconds: number,
+    exchangeRate: number | null,
 }
 
 export default function PaymentCard(props: PaymentCardProps) {
+
+    const classes = useStyles().classes;
+
+    const [isQRLoading, setIsQRLoading] = useState(true);
+    const [isQRError, setIsQRError] = useState(false);
+
+    function handleLoad() {
+        setIsQRLoading(false);
+    }
+
+    function handleError() {
+        setIsQRLoading(false);
+        setIsQRError(true);
+    }
+
+    const getUSDTPrice = () => {
+        if (props != null && props.price && props.exchangeRate) {
+            const usdtPrice = props.price / props.exchangeRate
+            return usdtPrice.toFixed(8).trim() + " USDT"
+        } else {
+            return "-"
+        }
+    }
+    const usdtPrice = getUSDTPrice()
 
     return (
         <Card sx={{maxWidth: 800}}>
@@ -26,25 +71,29 @@ export default function PaymentCard(props: PaymentCardProps) {
                     justifyContent: "center",
                     alignItems: "center",
                     height: "80px",
-                    backgroundColor: "blue",
+                    backgroundColor: "#071e26",
                     p: 2, // add padding here
                 }}
             >
-                <img src={LogoImage} alt="logo" width={"75%"} />
+                <img src={LogoImage} alt="logo" width={"75%"}/>
             </CardMedia>
 
-            <Box mt={2}>
+            <Box mt={2} mb={2}>
                 <Container maxWidth="xs">
-                    <h2>{props.price ?? "-"} USD</h2>
-                    <h2>= {props.price ? props.price + 0.1 : "-"} USDT</h2>
+                    <Typography variant="h5">{props.price ?? "-"} USD</Typography>
+                    <Grid container alignItems="center" justifyContent="center">
+                        <ExchangeIcon/>
+                        <Box mx={1}/>
+                        <Typography variant="h5">{usdtPrice}</Typography>
+                    </Grid>
                     <Stack
                         direction="row"
                         justifyContent="space-between"
                         alignItems="center"
                         spacing={2}
                     >
-                        <h3>Merchant Name</h3>
-                        <h3>{props.merchantName}</h3>
+                        <Typography variant="h6">Merchant Name</Typography>
+                        <Typography variant="h6">{props.merchantName}</Typography>
                     </Stack>
                     <Stack
                         direction="row"
@@ -52,8 +101,8 @@ export default function PaymentCard(props: PaymentCardProps) {
                         alignItems="center"
                         spacing={2}
                     >
-                        <h3>Merchant ID</h3>
-                        <h3>{props.merchantId}</h3>
+                        <Typography variant="h6">Merchant ID</Typography>
+                        <Typography variant="h6">{props.merchantId}</Typography>
                     </Stack>
                     <Stack
                         direction="row"
@@ -61,20 +110,31 @@ export default function PaymentCard(props: PaymentCardProps) {
                         alignItems="center"
                         spacing={2}
                     >
-                        <h3>Product Name</h3>
-                        <h3>{props.productName}</h3>
+                        <Typography variant="h6">Product Name</Typography>
+                        <Typography variant="h6">{props.productName}</Typography>
                     </Stack>
-                    <Card>
-                        <Box mt={2}>
+                    <Box mt={2}/>
+                    <Card className={classes.cardStyle} elevation={0}>
+                        <Box mt={4}>
+                            <Typography variant="h5" color="text.secondary">
+                                You pay {usdtPrice ?? "-"}
+                            </Typography>
+                        </Box>
+                        <Box mt={0}>
                             <CardHeader
                                 subheader="Scan this QRCode in the Binance APP"
                             />
                         </Box>
-                        <Box p={8} mt={-8} mb={-11}>
+                        <Box p={8} mt={-10} mb={-11} height={280}>
                             <CardMedia
                                 component="img"
                                 image={props.order?.qrcodeLink}
-                                alt="Paella dish"
+                                alt="Loading..."
+                                onLoad={handleLoad}
+                                onError={handleError}
+                                sx={{
+                                    height: "100%",
+                                }}
                             />
                         </Box>
                         <Typography variant="body2" color="text.secondary">
